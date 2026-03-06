@@ -1,0 +1,45 @@
+# TrussC Development Skill
+
+AI coding skill for [TrussC](https://github.com/tettou771/TrussC) — a lightweight creative coding framework based on sokol, with an API similar to openFrameworks.
+
+## What's Included
+
+| File | Contents |
+|------|----------|
+| `SKILL.md` | Entry point — build workflow, essential patterns, common pitfalls |
+| `app-lifecycle.md` | App class, window, input, math, threading, file utilities |
+| `graphics.md` | Drawing primitives, Color, Image/Pixels/Texture/Fbo/Shader |
+| `node-system.md` | Node/RectNode hierarchy, events, layout, UI design patterns |
+
+## Install
+
+### Claude Code (claude-code)
+
+```bash
+# Clone into your skills directory
+git clone https://github.com/tettou771/trussc-dev-skill.git ~/.claude/skills/trussc-dev
+```
+
+### Cursor
+
+Add to your skill configuration at `~/.cursor/skills-cursor/` or reference the path in your Cursor settings.
+
+### Codex
+
+```bash
+git clone https://github.com/tettou771/trussc-dev-skill.git ~/.codex/skills/trussc-dev
+```
+
+## Usage
+
+The skill activates automatically when writing TrussC C++ code. It provides the AI with knowledge of:
+
+- Build system (CMake presets, projectGenerator)
+- API patterns (Node hierarchy, event-driven rendering, method chaining)
+- Thread safety rules (Pixels vs Texture/Image/Fbo)
+- UI widget design patterns (ScrollContainer, LayoutMod, Event/EventListener)
+- 15 common pitfalls and how to avoid them
+
+## License
+
+MIT
