@@ -72,6 +72,10 @@ setFullscreen(bool); toggleFullscreen(); isFullscreen()
 getWindowWidth(); getWindowHeight(); getWindowSize() -> Vec2
 getAspectRatio()
 getDpiScale()                      // 2.0 on Retina
+
+// Window position (macOS/Windows only; others return IVec2(-1,-1))
+getWindowPosition() -> IVec2       // Screen coords, top-left origin
+setWindowPosition(int x, int y)
 ```
 
 ---
@@ -100,8 +104,8 @@ setIndependentFps(VSYNC, 0);      // Update at vsync, draw only on redraw()
 
 ```cpp
 getElapsedTime()                   // Seconds since start
-getDeltaTime()                     // Seconds since last frame
-getFrameRate()                     // FPS (10-frame average)
+getDeltaTime()                     // Seconds since last update() call (real elapsed)
+getFrameRate()                     // FPS based on update frequency (10-frame average)
 getFrameCount()                    // Total update() calls
 getUpdateCount()
 getDrawCount()
@@ -125,6 +129,15 @@ getMouseButton()                   // -1 if none
 
 ```cpp
 isKeyPressed(key)                  // Is key currently held?
+```
+
+**IMPORTANT: Letter keys are UPPERCASE** — sokol uses key codes, not ASCII characters.
+```cpp
+// CORRECT
+if (key == 'A') { /* ... */ }
+
+// WRONG — will never match
+if (key == 'a') { /* ... */ }
 ```
 
 Key constants:
@@ -171,6 +184,13 @@ PI           // deprecated, use HALF_TAU
 Vec2(x, y)
 Vec3(x, y, z)
 Vec4(x, y, z, w)
+
+// Integer vectors (for pixel coords, grid positions, etc.)
+IVec2(x, y)                        // int x, y
+IVec3(x, y, z)                     // int x, y, z
+iv.toVec2()                        // Convert to float Vec2
+iv.toVec3()                        // Convert to float Vec3
+iv.xy()                            // IVec3 → IVec2
 
 // Vec2/Vec3 methods
 v.length(); v.lengthSquared()
@@ -242,6 +262,59 @@ setNearClip(float); setFarClip(float)
 worldToScreen(Vec3) -> Vec3        // (screenX, screenY, depth)
 screenToWorld(Vec2, worldZ=0) -> Vec3
 ```
+
+---
+
+## Tween (Standalone Animation)
+
+Animate any type that supports lerp (float, Vec2, Vec3, Color, etc.). Auto-updates via `events().update` — no manual update needed.
+
+```cpp
+Tween<float> tween;
+tween.from(0).to(100).duration(1.0)
+     .ease(EaseType::Cubic, EaseMode::InOut)
+     .delay(0.5)           // Wait before starting
+     .start();
+
+float val = tween.getValue();      // Current interpolated value
+float progress = tween.getProgress(); // 0.0–1.0
+```
+
+### Chainable Setters
+
+```cpp
+.from(T value)                     // Start value
+.to(T value)                       // End value
+.duration(float seconds)
+.ease(EaseType, EaseMode)          // EaseType: Linear, Quad, Cubic, Quart, Expo, Sine, Elastic, Bounce, Back
+.ease(EaseType in, EaseType out)   // Asymmetric easing
+.delay(float seconds)              // Delay before animation (re-applied each loop)
+.loop(int count = -1)              // -1=infinite, N=repeat N times
+.yoyo(bool = true)                 // Reverse direction each loop
+.start()                           // Begin animation
+.pause() / .resume() / .reset()
+.finish()                          // Jump to end immediately
+```
+
+### Completion Event
+
+```cpp
+tween.complete->listen([]() {
+    // Fires when all loops are done
+});
+```
+
+### Loop + Delay + Yoyo
+
+```cpp
+// Move-wait-reverse-wait pattern
+tween.from(0).to(200).duration(0.5)
+     .delay(0.3)
+     .loop(-1).yoyo()
+     .start();
+```
+
+**Note:** For animating Node properties (position, scale, rotation), use TweenMod instead (see node-system.md).
 
 ---
 

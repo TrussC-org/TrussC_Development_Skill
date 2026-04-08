@@ -114,31 +114,30 @@ cancelTimer(id);
 
 Protected Node methods. Store ID to cancel later.
 
-## Reference Implementation
+## UI Widget Design Patterns
 
-**`src/crop/`** (CropWidgets.h, CropPanel.h, CropPreview.h, CropView.h) is the canonical example of TrussC UI patterns:
+See [node-system.md](node-system.md) § "UI Widget Design Patterns" for details on:
 - Every UI element as a RectNode child (labels, separators, buttons)
 - Event<T>/EventListener RAII for widget communication (no raw `function<>` callbacks)
 - PlainScrollContainer + ScrollBar + LayoutMod panel pattern
 - Constructor/setup() separation (create in constructor, addChild in setup)
 - Font rendering for all text
 
-When writing new UI code, follow this pattern. See [node-system.md](node-system.md) § "UI Widget Design Patterns" for details.
-
 ## Common Pitfalls
 
-1. **sleep() inside mutex lock** → deadlock. Always sleep OUTSIDE lock scope.
-2. **Image in background thread** → crash. Use Pixels for background, Image for main thread only.
-3. **Texture update twice per frame** → second call silently skipped (sokol limitation).
-4. **Forgot enableEvents()** → node won't receive mouse/key events.
-5. **Forgot redraw()** → screen doesn't update in event-driven mode.
-6. **setLineWidth()** → doesn't exist in sokol. drawLine is always 1px. Use StrokeMesh for thick lines.
-7. **std::map vs tc::map** → name collision with `using namespace tc`. Use `std::map` explicitly if needed, or avoid `using namespace tc` in that file.
-8. **Copy Pixels/Image/Texture** → deleted copy constructor. Use `std::move()` or `Pixels::clone()`.
-9. **Node without make_shared** → `addChild()` fails. Always create nodes with `make_shared<>()`.
-10. **getGlobalPos()** → returns `Vec3` (origin of the node in global space). Shorthand for `localToGlobal(Vec3(0,0,0))`.
-11. **removeChild() during iteration** → crashes (vector mutation). Use `destroy()` for deferred removal. Check `isDead()` to skip destroyed nodes.
-12. **addChild() in constructor** → crash. `weak_from_this()` fails because `shared_ptr` isn't complete yet. Always `addChild()` in `setup()` override.
-13. **Raw `function<>` callbacks** → no auto-cleanup, dangling risk. Use `Event<T>` + `EventListener` (RAII auto-disconnect on destruction).
-14. **Drawing UI elements in parent draw()** → won't scroll, no hit testing. Make every UI element a RectNode child.
-15. **LayoutMod auto-relayout** → doesn't happen. Call `updateLayout()` manually in `setSize()` and after child changes.
+1. **Letter keys are UPPERCASE** → `'A'` not `'a'`. sokol uses key codes, not ASCII. `if (key == 'a')` will never match.
+2. **sleep() inside mutex lock** → deadlock. Always sleep OUTSIDE lock scope.
+3. **Image in background thread** → crash. Use Pixels for background, Image for main thread only.
+4. **Texture update twice per frame** → second call silently skipped (sokol limitation).
+5. **Forgot enableEvents()** → node won't receive mouse/key events.
+6. **Forgot redraw()** → screen doesn't update in event-driven mode.
+7. **setLineWidth()** → doesn't exist in sokol. drawLine is always 1px. Use StrokeMesh for thick lines.
+8. **std::map vs tc::map** → name collision with `using namespace tc`. Use `std::map` explicitly if needed, or avoid `using namespace tc` in that file.
+9. **Copy Pixels/Image/Texture** → deleted copy constructor. Use `std::move()` or `Pixels::clone()`.
+10. **Node without make_shared** → `addChild()` fails. Always create nodes with `make_shared<>()`.
+11. **getGlobalPos()** → returns `Vec3` (origin of the node in global space). Shorthand for `localToGlobal(Vec3(0,0,0))`.
+12. **removeChild() during iteration** → crashes (vector mutation). Use `destroy()` for deferred removal. Check `isDead()` to skip destroyed nodes.
+13. **addChild() in constructor** → crash. `weak_from_this()` fails because `shared_ptr` isn't complete yet. Always `addChild()` in `setup()` override.
+14. **Raw `function<>` callbacks** → no auto-cleanup, dangling risk. Use `Event<T>` + `EventListener` (RAII auto-disconnect on destruction).
+15. **Drawing UI elements in parent draw()** → won't scroll, no hit testing. Make every UI element a RectNode child.
+16. **LayoutMod auto-relayout** → doesn't happen. Call `updateLayout()` manually in `setSize()` and after child changes.
