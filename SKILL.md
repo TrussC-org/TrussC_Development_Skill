@@ -15,28 +15,40 @@ Comprehensive reference for writing TrussC applications. See topic files for det
 
 ## Build Workflow
 
-### New Source File → cmake re-configure
+### New Source File → re-update
 
 When you create a new `.cpp` or `.h` file under `src/`, you MUST run:
 
 ```bash
-cmake --preset macos
+trusscli update
 ```
 
-TrussC uses `file(GLOB_RECURSE CONFIGURE_DEPENDS ...)`. Ninja picks up new files automatically, but Xcode does not. Always run `cmake --preset macos` after adding/deleting/renaming source files.
+TrussC uses `file(GLOB_RECURSE CONFIGURE_DEPENDS ...)`. Ninja picks up new files automatically, but Xcode does not. Always run `trusscli update` after adding/deleting/renaming source files.
 
-### Build
+### Build & Run
 
 ```bash
-cmake --build build-macos
+trusscli build                          # Build only
+trusscli run                            # Build and launch
 ```
 
-### projectGenerator
+Always use `trusscli` instead of calling `cmake` directly. If `trusscli` can't do something you need, report it to the user.
+
+### trusscli
 
 If `CMakeLists.txt` or `CMakePresets.json` need regeneration (e.g., adding/removing addons):
 
 ```bash
-/Users/toru/Nextcloud/Make/TrussC/projectGenerator/projectGenerator.app/Contents/MacOS/projectGenerator --update /path/to/project
+trusscli update -p /path/to/project
+```
+
+Other common commands:
+```bash
+trusscli new /path/to/project           # Create new project
+trusscli addon add tcxImGui             # Add addon
+trusscli build                          # Build (native platform)
+trusscli run                            # Build and launch
+trusscli doctor                         # Check dev environment
 ```
 
 ## Essential Patterns

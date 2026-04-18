@@ -34,7 +34,7 @@ git clone https://github.com/tettou771/trussc-dev-skill.git ~/.codex/skills/trus
 
 The skill activates automatically when writing TrussC C++ code. It provides the AI with knowledge of:
 
-- Build system (CMake presets, projectGenerator)
+- Build system (CMake presets, trusscli)
 - API patterns (Node hierarchy, event-driven rendering, method chaining)
 - Thread safety rules (Pixels vs Texture/Image/Fbo)
 - UI widget design patterns (ScrollContainer, LayoutMod, Event/EventListener)

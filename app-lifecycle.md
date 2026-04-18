@@ -8,7 +8,7 @@ App inherits from RectNode. Entry point:
 int main() {
     WindowSettings settings;
     settings.setSize(1280, 720).setTitle("My App");
-    runApp<MyApp>(settings);
+    TC_RUN_APP(MyApp, settings);
 }
 
 class MyApp : public App {
@@ -17,6 +17,8 @@ class MyApp : public App {
     void draw() override { }
 };
 ```
+
+`TC_RUN_APP` is the universal entry point macro. It automatically selects between static linking and hot reload mode.
 
 ### Virtual Methods
 
