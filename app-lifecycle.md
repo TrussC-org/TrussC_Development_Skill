@@ -20,6 +20,36 @@ class MyApp : public App {
 
 `TC_RUN_APP` is the universal entry point macro. It automatically selects between static linking and hot reload mode.
 
+### Hot Reload
+
+Edit source files and see changes live without restarting the app. Supported on macOS (.dylib) and Linux (.so).
+
+**Enable:** Add `TC_HOT_RELOAD(YourAppClass)` at the top of your App's `.cpp` file:
+
+```cpp
+// tcApp.cpp
+#include "tcApp.h"
+TC_HOT_RELOAD(tcApp)
+
+void tcApp::setup() { ... }
+void tcApp::draw() { ... }
+```
+
+**How it works:**
+1. CMake detects `TC_HOT_RELOAD` in `src/*.cpp` during configure
+2. Build splits into Host (EXE) + Guest (shared library)
+3. Host watches `src/` for file changes → auto-rebuilds Guest → reloads via dlopen
+4. App state resets on reload (setup() is called again)
+
+**Disable:** Comment out or remove `TC_HOT_RELOAD(...)` → next configure reverts to single-binary.
+
+**Limitations:**
+- State is not preserved across reloads (setup() re-runs)
+- Not supported on Windows, Wasm, iOS, Android (falls back to static mode)
+- `main.cpp` changes require a full restart
+
+**When to use:** During iterative development — tweaking visuals, layout, animations, shader parameters. Saves significant time compared to full restart cycles.
+
 ### Virtual Methods
 
 ```cpp
