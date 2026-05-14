@@ -45,11 +45,38 @@ trusscli update -p /path/to/project
 Other common commands:
 ```bash
 trusscli new /path/to/project           # Create new project
-trusscli addon add tcxImGui             # Add addon
 trusscli build                          # Build (native platform)
+trusscli build --release                # Release config
 trusscli run                            # Build and launch
+trusscli clean                          # Delete build dirs
+trusscli upgrade                        # Pull latest TrussC + rebuild trusscli
 trusscli doctor                         # Check dev environment
+trusscli info                           # Show project / framework info
 ```
+
+### Addons
+
+Addons live in `addons/` next to the project. The framework ships ~12 bundled (tcxBox2d, tcxCurl, tcxGltf, tcxHap, tcxImGui, tcxLua, tcxLut, tcxObj, tcxOsc, tcxQuadWarp, tcxTls, tcxWebSocket). Community addons are discovered through the topic-based registry.
+
+```bash
+trusscli addon list                     # Local addons + project status
+trusscli addon list --remote            # Include registry (community)
+trusscli addon search <query>           # Case-insensitive search of registry
+trusscli addon add <addon>              # Add to project's addons.make
+trusscli addon remove <addon>           # Remove from addons.make
+trusscli addon clone <name>             # Clone from registry into addons/
+trusscli addon clone <owner>/<name>     # Exact GitHub repo (disambiguates collisions)
+trusscli addon clone <git-url>          # Direct HTTPS or git@host:user/repo SSH
+trusscli addon pull --all               # git pull all cloned addons
+```
+
+Ambiguous bare names (e.g. a bundled `tcxLua` colliding with a community `funatsufumiya/tcxLua`) require `owner/name` form. Tab completion lists both forms.
+
+**Registry / Browser:**
+- Live browser: https://trussc.org/addons/
+- registry.json: `https://raw.githubusercontent.com/TrussC-org/trussc-addons/gh-pages/registry.json`
+
+**addon.json fields** (all optional, but encourage authors to fill in): `description`, `author`, `license`, `category`, `keywords`, `platforms`, `screenshot`, `demo_url`, `trussc_version`, `dependencies`. Categories come from a fixed set (`3d`, `ai`, `algorithms`, `animation`, `bridges`, `computer-vision`, `game`, `graphics`, `gui`, `hardware`, `machine-learning`, `network`, `physics`, `sound`, `typography`, `utilities`, `video`, `web`, `misc`). Dependencies declare other addons with optional tag/branch/commit pinning — `trusscli addon clone` walks the graph recursively with y/n prompts.
 
 ## Essential Patterns
 
