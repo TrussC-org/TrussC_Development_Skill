@@ -48,19 +48,33 @@ drawArc(x, y, radius, angleBegin, angleEnd)
 drawArc(Vec3 center, radius, angleBegin, angleEnd)
 ```
 
-For chainable paths use `Path` (also tolerance-aware):
+For chainable paths use `Path` (also tolerance-aware). A single Path holds
+**multiple subpaths** — call `moveTo()` to start a new disjoint contour.
+This is how an outer ring + its holes (or several glyphs) fit in one Path:
 
 ```cpp
 Path p;
-p.moveTo(0, 0);
+p.moveTo(0, 0);                                // start subpath 0
 p.lineTo(100, 0);
 p.bezierTo(120, 0, 140, 20, 140, 40);          // cubic
 p.quadBezierTo(150, 80, 100, 100);             // quadratic
 p.curveTo(50, 120);                            // Catmull-Rom (needs ≥4 pts)
 p.arc(Vec2(100, 100), 30, 0, HALF_TAU);        // arc segment
-p.close();
-p.draw();                                      // fill or stroke per current style
-p.drawStroke();                                // thick stroke via StrokeMesh
+p.close();                                     // closes current subpath
+p.moveTo(40, 40);                              // start subpath 1 (e.g. hole)
+p.lineTo(60, 40); p.lineTo(50, 60); p.close();
+
+p.draw();          // per-subpath fill (convex-only) + 1px stroke
+p.drawStroke();    // per-subpath thick stroke via StrokeMesh
+p.drawFill();      // earcut tessellation: concave + holes (outer + direct
+                   // children become holes, grandchildren = new islands)
+```
+
+Introspection:
+```cpp
+p.getNumSubpaths();
+auto [start, end] = p.getSubpathRange(i);       // index range into getVertices()
+p.isSubpathClosed(i);
 ```
 
 Pass `resolution = -1` (default) on `Path` curve methods to honour the
@@ -245,18 +259,70 @@ bytes (2 bytes/row: left 8 px + right 8 px, MSB-first).
 ```cpp
 Font font;
 font.load("/path/to/font.ttf", 14);
+font.load(TC_FONT_SANS, 14);             // platform font (PostScript / family name)
 font.setAlign(Direction::Center, Direction::Center);
 font.setLineHeightEm(1.2);
 font.drawString(text, x, y);
 // Also: drawString(text, x, y, hAlign, vAlign) overload
+
+font.getWidth(text);                     // logical pixels
+font.getHeight(text);                    // line height × wrapped line count
 ```
 
-Platform fonts:
+Platform fonts (resolved via CoreText / DirectWrite / fontconfig — falls back
+to a CDN URL on Web):
 ```cpp
-TC_FONT_SANS   // Helvetica (macOS)
-TC_FONT_SERIF  // Times
-TC_FONT_MONO   // Menlo
+TC_FONT_SANS      // Latin sans
+TC_FONT_SERIF     // Latin serif
+TC_FONT_MONO      // Latin monospace
+TC_FONT_SANS_JA   // Japanese sans (Hiragino / Yu Gothic / Noto Sans CJK JP)
+TC_FONT_SERIF_JA  // Japanese serif
+// No TC_FONT_MONO_JA — no clean cross-platform CJK mono. Use a bundled .ttf if needed.
+
+tc::systemFontPath("HiraginoSans-W3");   // resolve a name yourself
+tc::listSystemFonts();                   // discovery — empty on Web/Android
 ```
+
+### Vertical writing (tategaki) + wrap + kinsoku
+
+```cpp
+font.setWritingMode(WritingMode::VerticalRL);   // top→bottom, cols flow right→left
+font.enableWrap(true);                          // off by default
+font.setMaxLineLength(380);                     // px — column height when vertical
+font.setLatinHyphenation(true);                 // insert '-' on forced Latin break (horizontal)
+font.setKinsoku(KinsokuLevel::Standard);        // Off / PunctuationOnly / Standard
+font.setHangingPunctuation(true);               // 行頭禁則 chars hang past edge (ぶら下げ)
+font.setTcyDigits(2, TcyMode::Combine, TcyMode::Rotate);   // 縦中横 — ≤2 digits combine, longer rotate
+font.setTcyLatin(TcyMode::Rotate);              // Rotate / Upright / Combine
+```
+
+Default is horizontal — existing `drawString` calls are unchanged. Vertical
+mode uses Unicode vertical-form glyphs (U+FE10–FE4F) when the font has them;
+otherwise rotates the upright glyph 90° CW. Kinsoku tables cover `、。」』）`
+and friends. The same wrap / kinsoku API works for horizontal text too.
+
+### Vector glyph paths (Font::getStringPath / getGlyphPath)
+
+For animation / scaling / rotation / hit testing / stroke / fill — atlas
+glyphs blur at large scale; paths stay crisp.
+
+```cpp
+Path text = font.getStringPath("Hello", 100, 200);   // logical pixels at (x, y)
+text.drawStroke();
+text.drawFill();                                     // holes auto-detected
+
+Path glyph = font.getGlyphPath(U'あ');                // em-normalized (1.0 = em)
+// glyph contains one subpath per contour. Walk with
+// glyph.getNumSubpaths() / glyph.getSubpathRange(i) / isSubpathClosed(i).
+// Coords: Vec3 in em units, Y-down, baseline at y=0, pen at x=0.
+```
+
+`getStringPath` routes through the same layout pipeline as `drawString`
+(writing mode, alignment, wrap, kinsoku, TCY), so tategaki / TCY / wrap
+work transparently. Quadratic / cubic beziers tessellate with explicit
+resolution (12 / 16) so curves stay smooth even when drawn at large scale.
+`drawFill` uses earcut + spatial-containment grouping — glyphs with holes
+(`O`, `日`, `e`, `a`, `あ` ...) render correctly without any special code.
 
 ### Direction Enum
 

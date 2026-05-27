@@ -29,6 +29,20 @@ When `keepGlobalPosition=true`, child's screen position is preserved when repare
 
 **addChild to a new parent automatically removes from old parent.**
 
+### Z-order (sibling stacking)
+
+Children draw in their list order — first added is drawn first, last added is drawn on top. There is no separate z-index; reorder the list instead:
+
+```cpp
+node->moveToFront();        // → end of parent's child list, drawn on top
+node->moveToBack();         // → beginning of list, drawn beneath siblings
+```
+
+- Both are no-ops if the node has no parent or is already at the target end.
+- Cost is O(n) over siblings (vector erase + push). Fine for typical UI counts; avoid calling every frame on huge sibling lists.
+- Only reorders within one parent. To lift a node above an unrelated subtree, reparent with `addChild(node, /*keepGlobalPosition=*/true)`.
+- Common pattern: bring a clicked card / dragged item to the top inside `onMousePress` before returning `true`.
+
 ### State
 
 ```cpp
