@@ -222,6 +222,44 @@ LogLevel: Verbose, Notice, Warning, Error, Fatal, Silent
 
 ---
 
+## Headless verification (screenshot a running app)
+
+To check what a GUI app actually renders — in CI, over SSH, or from an agent —
+drive the app's own MCP server over HTTP. It encodes the app's framebuffer to
+PNG internally, so it captures exactly the app window and needs **no
+screen-recording / TCC permission** (unlike macOS `screencapture`, which fails
+on locked-down terminals and grabs other windows too).
+
+```bash
+BIN=bin/MyApp.app/Contents/MacOS/MyApp        # the real binary, not `open`
+TRUSSC_MCP=1 TRUSSC_MCP_PORT=8765 "$BIN" >/tmp/app.log 2>&1 &
+sleep 3                                        # wait for "MCP HTTP server started"
+
+URL=http://localhost:8765/mcp                  # NOTE: path is /mcp, not /
+curl -s -X POST $URL -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"initialize","id":1,"params":{}}'
+curl -s -X POST $URL -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"tools/call","id":2,
+       "params":{"name":"save_screenshot","arguments":{"path":"/tmp/shot.png"}}}'
+```
+
+Then open `/tmp/shot.png`. Gotchas:
+
+- Endpoint is `http://localhost:PORT/mcp` — posting to `/` returns **404**.
+- `save_screenshot {path}` writes a file (best for this flow). `get_screenshot`
+  returns base64 PNG inline; a per-frame PNG encode can contend with it, so
+  prefer `save_screenshot`.
+- Standard MCP tools when `TRUSSC_MCP=1`: `mouse_move`, `mouse_click`,
+  `key_press`, `get_screenshot`, `save_screenshot` (+ any app-specific tools).
+  So you can also *script interaction* before capturing.
+- In-app alternative for one-off captures: `fbo.save("shot.png")` (see
+  graphics.md) or render a frame and save the default framebuffer.
+
+This is the reliable path when the GUI/MCP launch itself is flaky — verify by
+framebuffer, not by what's on the physical screen.
+
+---
+
 ## Math
 
 ### Constants
