@@ -1,6 +1,6 @@
 # TrussC Development Skill
 
-AI coding skill for [TrussC](https://github.com/tettou771/TrussC) — a lightweight creative coding framework based on sokol, with an API similar to openFrameworks.
+AI coding skill for [TrussC](https://github.com/TrussC-org/TrussC) — a lightweight creative coding framework based on sokol, with an API similar to openFrameworks.
 
 ## What's Included
 
@@ -20,7 +20,7 @@ AI coding skill for [TrussC](https://github.com/tettou771/TrussC) — a lightwei
 
 ```bash
 # Clone into your skills directory
-git clone https://github.com/tettou771/trussc-dev-skill.git ~/.claude/skills/trussc-dev
+git clone https://github.com/TrussC-org/TrussC_Development_Skill.git ~/.claude/skills/trussc-dev
 ```
 
 ### Cursor
@@ -30,7 +30,7 @@ Add to your skill configuration at `~/.cursor/skills-cursor/` or reference the p
 ### Codex
 
 ```bash
-git clone https://github.com/tettou771/trussc-dev-skill.git ~/.codex/skills/trussc-dev
+git clone https://github.com/TrussC-org/TrussC_Development_Skill.git ~/.codex/skills/trussc-dev
 ```
 
 ## Usage
