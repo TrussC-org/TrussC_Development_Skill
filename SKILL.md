@@ -68,7 +68,41 @@ trusscli info                           # Show project / framework info
 
 ## Addons (using them in your app)
 
-Addons live in `addons/` next to the project. The framework ships ~12 bundled (tcxBox2d, tcxCurl, tcxGltf, tcxHap, tcxImGui, tcxLua, tcxLut, tcxObj, tcxOsc, tcxQuadWarp, tcxTls, tcxWebSocket). Community addons are discovered through the topic-based registry.
+Addons live in `addons/` next to the project. Before writing functionality from
+scratch (networking, physics, CV, model loading…), **check whether an addon already
+covers it.**
+
+**Bundled with the framework** (in the TrussC repo's `addons/`):
+tcxBox2d (2D physics), tcxCurl (HTTPS), tcxDepthCamera + tcxDepthRecord (depth cams),
+tcxGltf / tcxObj (3D models), tcxHap (GPU video codec), tcxImGui (Dear ImGui),
+tcxLua (scripting), tcxLut (color grading), tcxMidi (MIDI I/O), tcxOsc (OSC),
+tcxQuadWarp (projection mapping), tcxTls (TLS/SSL), tcxWebSocket.
+
+**Community / registry** (cloned on demand): tcxArtnet (DMX/Art-Net), tcxAruco
+(marker tracking), tcxAzureKinect, tcxGPT (OpenAI API), tcxGlitch (databending),
+tcxIME (non-Latin text input), tcxMQTT, tcxOpenCV, tcxPhysics (Jolt 3D physics),
+tcxPly (point clouds/meshes), tcxSyphon (macOS texture sharing) — and growing; the
+list above goes stale, so query the registry for current truth.
+
+### Querying the latest registry
+
+The registry is a single JSON on the `trussc-addons` repo's gh-pages branch,
+auto-rebuilt by a crawler (GitHub topic `trussc-addon`). `trusscli addon list
+--remote` / `search` wrap it; fetch it directly when you want full metadata:
+
+```bash
+REG=https://raw.githubusercontent.com/TrussC-org/trussc-addons/gh-pages/registry.json
+
+curl -s $REG | jq -r '.last_updated'                       # freshness stamp
+curl -s $REG | jq -r '.addons[] | "\(.name)\t\(.description)"'
+curl -s $REG | jq -r '.addons[] | select(.bundled|not) | .name'   # community only
+curl -s $REG | jq '.addons[] | select(.category=="network")'
+curl -s $REG | jq '.addons[] | select((.keywords|join(" "))+.description | test("midi";"i"))'
+```
+
+Per-addon fields: `name`, `owner`, `url`, `bundled`, `description`, `author`,
+`license`, `category`, `keywords`, `platforms`, `screenshot`, `demo_url`,
+`dependencies`, `stars`. Human-browsable version: https://trussc.org/addons/
 
 ```bash
 trusscli addon list                     # Local addons + project status
@@ -83,8 +117,6 @@ trusscli addon pull --all               # git pull all cloned addons
 ```
 
 Ambiguous bare names (e.g. a bundled `tcxLua` colliding with a community `funatsufumiya/tcxLua`) require `owner/name` form. Tab completion lists both forms.
-
-Browse: https://trussc.org/addons/
 
 **Writing your own addon?** → [addon-authoring.md](addon-authoring.md)
 

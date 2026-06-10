@@ -112,11 +112,140 @@ tcApp (root)
 - **Scene switching:** keep scenes as siblings and toggle `setActive()` — an inactive
   subtree costs nothing and receives no events.
 - **Draw order** is sibling order (`moveToFront()`/`moveToBack()` to reorder).
-- **Cross-node communication:** expose `Event<T>` members and connect with
-  `EventListener` (RAII auto-disconnect) — not raw `function<>` callbacks, not
-  reaching into siblings via the parent.
 - Mutating the tree during update/draw/dispatch is safe (children are snapshotted;
   `destroy()` and removals are deferred).
+
+## Loose Coupling with Event<T> + EventListener
+
+The third pillar besides hierarchy and Mods. The rule that keeps a node tree from
+turning into a web of cross-references: **dependencies point downward only.** A parent
+knows its children; a child never knows its parent's type or its siblings. Anything a
+child needs to tell the outside world goes out through an `Event<T>` member — whoever
+cares listens.
+
+```cpp
+class PauseButton : public RectNode {
+public:
+    Event<void> pressed;                       // emitter: public Event member
+protected:
+    bool onMousePress(const MouseEventArgs& e) override {
+        pressed.notify();
+        return true;
+    }
+};
+
+class Hud : public RectNode {
+    void setup() override {
+        auto btn = make_shared<PauseButton>();
+        addChild(btn);
+        // listener side: keep the EventListener as a member — RAII.
+        // When Hud dies, the connection dies with it. No dangling callbacks.
+        pauseListener_ = btn->pressed.listen([this]() {
+            pauseRequested.notify();           // re-fire upward (bubbling)
+        });
+    }
+public:
+    Event<void> pauseRequested;                // Hud's own event, coarser-grained
+private:
+    EventListener pauseListener_;
+};
+```
+
+Why this beats raw `function<>` callbacks: the `EventListener` disconnects itself on
+destruction, so a listener outliving (or outlived by) the emitter is never a crash.
+Multiple listeners can attach to one event, notify is thread-safe, and removal during
+notify is safe.
+
+Design guidance:
+
+- **Bubble, don't broadcast:** each layer listens to its children and re-fires a
+  *semantically coarser* event of its own (`PauseButton::pressed` →
+  `Hud::pauseRequested` → app pauses the scene). Layers stay swappable.
+- The same mechanism is used by the framework itself — `RectNode::mousePressed`,
+  `Node::localMatrixChanged`, `TweenMod::complete` are all `Event<T>` — so app wiring
+  and framework wiring read identically.
+- Full API rules (T& argument, Event<void>, storing listeners): see
+  [node-system.md](node-system.md) § Event System.
+
+### App-wide events: the AppEvents singleton (recommended)
+
+Bubbling is right for parent↔child. But some signals are genuinely app-global —
+"show a modal", "config was re-downloaded", "operator locked the controls" — and
+bubbling those through five unrelated layers couples every layer to concerns it
+doesn't own. For these, the recommended pattern is **one event-bus struct as a Meyers
+singleton**:
+
+```cpp
+// AppEvents.h
+#pragma once
+#include <TrussC.h>
+using namespace std;
+using namespace tc;
+
+struct ModalEventArgs {
+    string message;
+    float autoDismiss = 0.0f;   // 0 = manual dismiss only
+};
+
+// App-wide event bus (singleton)
+struct AppEvents {
+    // Group events by concern, one comment each — this file IS the
+    // documentation of "what can happen in this app".
+    Event<ModalEventArgs> showModal;
+    Event<void>  dismissModal;
+    Event<void>  configUpdated;     // config.json downloaded & saved
+    Event<float> syncProgress;      // 0.0-1.0
+    Event<bool>  lockChanged;
+
+    // Shared state that mirrors an event. Listeners may also poll the flag.
+    // NEVER write the flag directly — fire the event; a self-listener syncs it.
+    bool isLocked = false;
+
+    AppEvents() {
+        lockSelfListener_ = lockChanged.listen([this](bool& v) { isLocked = v; });
+    }
+private:
+    EventListener lockSelfListener_;
+};
+
+AppEvents& appEvents();
+
+// AppEvents.cpp
+AppEvents& appEvents() {
+    static AppEvents instance;   // Meyers singleton: constructed on first use
+    return instance;
+}
+```
+
+Usage from anywhere in the tree — emitter and listener never know each other:
+
+```cpp
+// Some deeply nested settings widget:
+appEvents().lockChanged.notify(true);
+
+// A toolbar on the other side of the app:
+lockListener_ = appEvents().lockChanged.listen([this](bool& locked) {
+    setActive(!locked);
+});
+```
+
+Rules that keep the bus healthy:
+
+- **Events are the write path, flags are the read path.** If a piece of state lives
+  on the bus (`isLocked`), it is synced by a self-listener in the constructor; code
+  fires the event and never assigns the flag. One source of truth, and every
+  listener still gets notified.
+- **Typed payload structs** (`ModalEventArgs`) over parallel primitive events — the
+  payload can grow without re-wiring listeners.
+- **Comment each event** with who fires it and who's expected to react — the bus
+  header becomes the app's interaction map.
+- **Don't dump local events on the bus.** A button's `pressed` belongs to the button;
+  the bus is only for signals with multiple unrelated listeners across the tree.
+  If everything goes through the bus, you've traded sibling-coupling for
+  everything-coupled-to-everything.
+- One cascade level is fine (e.g. `experienceStarted` self-listener also starts the
+  global timer), but if bus events start firing chains of other bus events, the flow
+  has become invisible — refactor.
 
 ## Mods — behavior without polluting update/draw
 
