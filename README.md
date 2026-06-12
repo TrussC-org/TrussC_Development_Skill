@@ -23,9 +23,12 @@ AI coding skill for [TrussC](https://github.com/TrussC-org/TrussC) — a lightwe
 git clone https://github.com/TrussC-org/TrussC_Development_Skill.git ~/.claude/skills/trussc-dev
 ```
 
-### Cursor
+### Cursor (2.4+)
 
-Add to your skill configuration at `~/.cursor/skills-cursor/` or reference the path in your Cursor settings.
+Cursor supports Agent Skills natively and also auto-discovers skills from the
+Claude/Codex directories — the Claude Code install above works as-is. For a
+project-local install, clone into `.cursor/skills/` (or `.agents/skills/`)
+inside your repository instead. Invoke manually by typing `/` in Agent chat.
 
 ### Codex
 
